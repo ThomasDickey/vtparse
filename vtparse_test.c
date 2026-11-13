@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include "vtparse.h"
 
 void parser_callback(vtparse_t *parser, vtparse_action_t action, unsigned char ch)
@@ -33,7 +34,7 @@ void parser_callback(vtparse_t *parser, vtparse_action_t action, unsigned char c
     printf("\n");
 }
 
-int main()
+static void parse_input(int fd)
 {
     unsigned char buf[1024];
     int bytes;
@@ -42,9 +43,25 @@ int main()
     vtparse_init(&parser, parser_callback);
 
     do {
-        bytes = read(STDIN_FILENO, buf, 1024);
+        bytes = read(fd, buf, 1024);
         vtparse(&parser, buf, bytes);
     } while(bytes > 0);
+}
+
+int main(int argc, char *argv[])
+{
+    if (argc > 1) {
+	int n;
+	int fd;
+	for (n = 1; n < argc; ++n) {
+	    if ((fd = open(argv[n], O_RDONLY)) >= 0) {
+		parse_input(fd);
+		close(fd);
+	    }
+	}
+    } else {
+	parse_input(STDIN_FILENO);
+    }
 
     return 0;
 }
